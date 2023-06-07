@@ -30,7 +30,14 @@ async function run() {
 
 
     const usersCollection = client.db("playTimeSports").collection('users');
-    
+
+    //jwt code
+    app.post('/jwt', (req, res) => {
+        const user = req.body
+        const token = jwt.sign(user, process.env.SECRET_ACCESS_TOKEN, { expiresIn: '1h' });
+        res.send({ token })
+      })
+
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
