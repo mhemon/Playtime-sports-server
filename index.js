@@ -11,6 +11,22 @@ app.use(cors())
 app.use(express.json())
 
 
+const verifyJWT = (req, res, next) => {
+    const authorization = req.headers.authorization
+    if (!authorization) {
+        return res.status(401).send({ error: true, message: 'unauthorized access!' })
+    }
+    const token = authorization.split(' ')[1]
+    jwt.verify(token, process.env.SECRET_ACCESS_TOKEN, (err, decoded) => {
+        if (err) {
+            return res.status(403).send({ error: true, message: 'unauthorized access!' })
+        }
+        req.decoded = decoded
+        next();
+    })
+}
+
+
 const { MongoClient, ServerApiVersion } = require('mongodb');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.ntvgsob.mongodb.net/?retryWrites=true&w=majority`;
 
@@ -31,6 +47,8 @@ async function run() {
 
         const usersCollection = client.db("playTimeSports").collection('users');
         const classesCollection = client.db("playTimeSports").collection('classes');
+        const instructorsCollection = client.db("playTimeSports").collection('instructors');
+        const cartCollection = client.db("playTimeSports").collection('carts');
 
         //jwt code
         app.post('/jwt', (req, res) => {
@@ -55,6 +73,40 @@ async function run() {
         app.get('/classes', async (req, res) => {
             const query = { status: "active" };
             const result = await classesCollection.find(query).toArray()
+            res.send(result)
+        })
+
+        // get instructors list from db
+        app.get('/instructors', async (req, res) => {
+            const result = await instructorsCollection.find().toArray()
+            res.send(result)
+        })
+
+        // carts related api
+        app.post('/carts', async (req, res) => {
+            const cart = req.body
+            const result = await cartCollection.insertOne(cart)
+            res.send(result)
+        })
+
+        app.get('/carts', verifyJWT, async (req, res) => {
+            const email = req.query.email
+            if (!email) {
+                res.send([])
+            }
+            const decoded = req.decoded
+            if (decoded.email !== req.query.email) {
+                return res.status(403).send({ error: true, message: 'forbidden access!' })
+            }
+            const cursor = cartCollection.find({ "email": email });
+            const result = await cursor.toArray();
+            res.send(result)
+        })
+
+        app.delete('/carts/:id', async (req, res) => {
+            const id = req.params.id
+            const query = { _id: new ObjectId(id) }
+            const result = await cartCollection.deleteOne(query)
             res.send(result)
         })
 
