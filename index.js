@@ -30,6 +30,7 @@ async function run() {
 
 
         const usersCollection = client.db("playTimeSports").collection('users');
+        const classesCollection = client.db("playTimeSports").collection('classes');
 
         //jwt code
         app.post('/jwt', (req, res) => {
@@ -47,6 +48,13 @@ async function run() {
                 return res.send({ message: 'user already exist!' })
             }
             const result = await usersCollection.insertOne(user)
+            res.send(result)
+        })
+
+        // get active class from db
+        app.get('/classes', async (req, res) => {
+            const query = { status: "active" };
+            const result = await classesCollection.find(query).toArray()
             res.send(result)
         })
 
