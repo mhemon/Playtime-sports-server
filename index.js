@@ -44,7 +44,7 @@ async function run() {
     try {
         // Connect the client to the server	(optional starting in v4.7)
         await client.connect();
-        
+
         const usersCollection = client.db("playTimeSports").collection('users');
         const classesCollection = client.db("playTimeSports").collection('classes');
         const instructorsCollection = client.db("playTimeSports").collection('instructors');
@@ -135,6 +135,17 @@ async function run() {
             const query = { _id: { $in: payment.cartItems.map(id => new ObjectId(id)) } }
             const deleteResult = await cartCollection.deleteMany(query)
             res.send({ insertResult, deleteResult });
+        })
+
+        //enrolled class information from payment collection
+        app.get('/enrolled-classes', verifyJWT, async (req, res) => {
+            const email = req.query.email
+            const query = { email: email }
+            const options = {
+                projection: { _id: 1, classImage: 1, classNames: 1, date: 1 },
+            };
+            const result = await paymentCollection.find(query, options).toArray()
+            res.send(result)
         })
 
         // Send a ping to confirm a successful connection
