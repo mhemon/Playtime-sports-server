@@ -3,7 +3,7 @@ const cors = require('cors');
 require('dotenv').config();
 const jwt = require('jsonwebtoken');
 const app = express()
-// const stripe = require('stripe')(process.env.PAYMENT_SECRET_KEY)
+const stripe = require('stripe')(process.env.PAYMENT_SECRET_KEY)
 const port = process.env.PORT || 5000
 
 // middleware
@@ -27,7 +27,8 @@ const verifyJWT = (req, res, next) => {
 }
 
 
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+const { default: Stripe } = require('stripe');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.ntvgsob.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -43,12 +44,12 @@ async function run() {
     try {
         // Connect the client to the server	(optional starting in v4.7)
         await client.connect();
-
-
+        
         const usersCollection = client.db("playTimeSports").collection('users');
         const classesCollection = client.db("playTimeSports").collection('classes');
         const instructorsCollection = client.db("playTimeSports").collection('instructors');
         const cartCollection = client.db("playTimeSports").collection('carts');
+        const paymentCollection = client.db("playTimeSports").collection('payments');
 
         //jwt code
         app.post('/jwt', (req, res) => {
@@ -103,13 +104,38 @@ async function run() {
             res.send(result)
         })
 
-        app.delete('/carts/:id', async (req, res) => {
+        app.delete('/carts/:id', verifyJWT, async (req, res) => {
             const id = req.params.id
             const query = { _id: new ObjectId(id) }
             const result = await cartCollection.deleteOne(query)
             res.send(result)
         })
 
+        // payment related routes
+
+        // create payment intent
+        // verifyJWT check that request comes from our user.
+        app.post('/create-payment-intent', verifyJWT, async (req, res) => {
+            const { price } = req.body;
+            const amount = price * 100;
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount: amount,
+                currency: 'usd',
+                payment_method_types: ['card']
+            });
+            res.send({
+                clientSecret: paymentIntent.client_secret
+            })
+        })
+
+        // payment related api
+        app.post('/payments', verifyJWT, async (req, res) => {
+            const payment = req.body;
+            const insertResult = await paymentCollection.insertOne(payment);
+            const query = { _id: { $in: payment.cartItems.map(id => new ObjectId(id)) } }
+            const deleteResult = await cartCollection.deleteMany(query)
+            res.send({ insertResult, deleteResult });
+        })
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
