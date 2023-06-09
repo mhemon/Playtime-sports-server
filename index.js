@@ -29,6 +29,7 @@ const verifyJWT = (req, res, next) => {
 
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const { default: Stripe } = require('stripe');
+const req = require('express/lib/request');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.ntvgsob.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -137,12 +138,22 @@ async function run() {
             res.send({ insertResult, deleteResult });
         })
 
+        app.get('/payments-history',verifyJWT, async (req, res) => {
+            const email = req.query.email
+            const query = {email: email}
+            const options = {
+                sort: { date: -1 }
+              };
+            const result = await paymentCollection.find(query, options).toArray()
+            res.send(result)
+        })
+
         //enrolled class information from payment collection
         app.get('/enrolled-classes', verifyJWT, async (req, res) => {
             const email = req.query.email
             const query = { email: email }
             const options = {
-                projection: { _id: 1, classImage: 1, classNames: 1, date: 1 },
+                projection: { _id: 1, classImage: 1, classNames: 1, date: 1, classItemID: 1 },
             };
             const result = await paymentCollection.find(query, options).toArray()
             res.send(result)
