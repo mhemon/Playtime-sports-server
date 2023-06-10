@@ -72,10 +72,59 @@ async function run() {
             res.send(result)
         })
 
-        // get active class from db
+        // get approved class from db
         app.get('/classes', async (req, res) => {
-            const query = { status: "active" };
+            const query = { status: "approved" };
             const result = await classesCollection.find(query).toArray()
+            res.send(result)
+        })
+
+        // get all class for admin
+        app.get('/all-classes', verifyJWT, async (req, res) => {
+            const result = await classesCollection.find().toArray()
+            res.send(result)
+        })
+        
+        // class status update approved for admin
+        app.patch('/classes-approved/:id', verifyJWT, async (req, res) => {
+            const id = req.params.id
+            const filter = {_id: new ObjectId(id)}
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: {
+                    status: 'approved'
+                },
+            };
+            const result = await classesCollection.updateOne(filter,updateDoc,options)
+            res.send(result)
+        })
+
+        // class status deny for admin
+        app.patch('/classes-denied/:id', verifyJWT, async (req, res) => {
+            const id = req.params.id
+            const filter = {_id: new ObjectId(id)}
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: {
+                    status: 'denied'
+                },
+            };
+            const result = await classesCollection.updateOne(filter,updateDoc,options)
+            res.send(result)
+        })
+
+        // add feedback for admin and instructor
+        app.patch('/add-feedback/:id', verifyJWT, async (req, res) => {
+            const id = req.params.id
+            const filter = {_id: new ObjectId(id)}
+            const options = { upsert: true };
+            const feedback = req.body.feedback
+            const updateDoc = {
+                $set: {
+                    feedback: feedback
+                },
+            };
+            const result = await classesCollection.updateOne(filter,updateDoc,options)
             res.send(result)
         })
 
@@ -97,7 +146,8 @@ async function run() {
 
         // get instructors list from db
         app.get('/instructors', async (req, res) => {
-            const result = await instructorsCollection.find().toArray()
+            const query = {role : 'instructor'}
+            const result = await usersCollection.find(query).toArray()
             res.send(result)
         })
 
