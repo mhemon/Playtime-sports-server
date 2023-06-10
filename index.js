@@ -79,6 +79,15 @@ async function run() {
             res.send(result)
         })
 
+        // get myclasss for Instructor
+        app.get('/myclass', verifyJWT, async (req, res) => {
+            const email = req.query.email
+            const query = {email: email}
+            const result = await classesCollection.find(query).toArray()
+            res.send(result)
+        })
+
+
         // add a new class by instructor
         app.post('/classes', verifyJWT, async (req, res) => {
             const newClass = req.body
