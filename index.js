@@ -49,7 +49,6 @@ async function run() {
 
         const usersCollection = client.db("playTimeSports").collection('users');
         const classesCollection = client.db("playTimeSports").collection('classes');
-        const instructorsCollection = client.db("playTimeSports").collection('instructors');
         const cartCollection = client.db("playTimeSports").collection('carts');
         const paymentCollection = client.db("playTimeSports").collection('payments');
 
@@ -84,39 +83,54 @@ async function run() {
             const result = await classesCollection.find().toArray()
             res.send(result)
         })
-        
+
         // class status update approved for admin
         app.patch('/classes-approved/:id', verifyJWT, async (req, res) => {
             const id = req.params.id
-            const filter = {_id: new ObjectId(id)}
+            const filter = { _id: new ObjectId(id) }
             const options = { upsert: true };
             const updateDoc = {
                 $set: {
                     status: 'approved'
                 },
             };
-            const result = await classesCollection.updateOne(filter,updateDoc,options)
+            const result = await classesCollection.updateOne(filter, updateDoc, options)
             res.send(result)
         })
 
         // class status deny for admin
         app.patch('/classes-denied/:id', verifyJWT, async (req, res) => {
             const id = req.params.id
-            const filter = {_id: new ObjectId(id)}
+            const filter = { _id: new ObjectId(id) }
             const options = { upsert: true };
             const updateDoc = {
                 $set: {
                     status: 'denied'
                 },
             };
-            const result = await classesCollection.updateOne(filter,updateDoc,options)
+            const result = await classesCollection.updateOne(filter, updateDoc, options)
             res.send(result)
+        })
+
+        // class update when payment complete increase enroll and decres available seat
+        app.patch('/classes-update-enroll', async (req, res) => {
+            const _ids = req.body.map(id => new ObjectId(id));
+            try {
+                const updatedClasses = await classesCollection.updateMany(
+                    { _id: { $in: _ids } }, 
+                    { $inc: { enrolled: 1, available_seats: -1 } }
+                );
+                res.send(updatedClasses);
+            } catch (err) {
+                console.error(err);
+                res.status(500).json({ message: 'Server Error' });
+            }
         })
 
         // add feedback for admin and instructor
         app.patch('/add-feedback/:id', verifyJWT, async (req, res) => {
             const id = req.params.id
-            const filter = {_id: new ObjectId(id)}
+            const filter = { _id: new ObjectId(id) }
             const options = { upsert: true };
             const feedback = req.body.feedback
             const updateDoc = {
@@ -124,14 +138,14 @@ async function run() {
                     feedback: feedback
                 },
             };
-            const result = await classesCollection.updateOne(filter,updateDoc,options)
+            const result = await classesCollection.updateOne(filter, updateDoc, options)
             res.send(result)
         })
 
         // get myclasss for Instructor
         app.get('/myclass', verifyJWT, async (req, res) => {
             const email = req.query.email
-            const query = {email: email}
+            const query = { email: email }
             const result = await classesCollection.find(query).toArray()
             res.send(result)
         })
@@ -146,7 +160,7 @@ async function run() {
 
         // get instructors list from db
         app.get('/instructors', async (req, res) => {
-            const query = {role : 'instructor'}
+            const query = { role: 'instructor' }
             const result = await usersCollection.find(query).toArray()
             res.send(result)
         })
