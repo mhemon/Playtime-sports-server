@@ -79,6 +79,13 @@ async function run() {
             res.send(result)
         })
 
+        // add a new class by instructor
+        app.post('/classes', verifyJWT, async (req, res) => {
+            const newClass = req.body
+            const result = await classesCollection.insertOne(newClass)
+            res.send(result)
+        })
+
         // get instructors list from db
         app.get('/instructors', async (req, res) => {
             const result = await instructorsCollection.find().toArray()
