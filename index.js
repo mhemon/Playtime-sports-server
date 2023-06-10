@@ -30,6 +30,7 @@ const verifyJWT = (req, res, next) => {
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const { default: Stripe } = require('stripe');
 const req = require('express/lib/request');
+const res = require('express/lib/response');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.ntvgsob.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -138,12 +139,12 @@ async function run() {
             res.send({ insertResult, deleteResult });
         })
 
-        app.get('/payments-history',verifyJWT, async (req, res) => {
+        app.get('/payments-history', verifyJWT, async (req, res) => {
             const email = req.query.email
-            const query = {email: email}
+            const query = { email: email }
             const options = {
                 sort: { date: -1 }
-              };
+            };
             const result = await paymentCollection.find(query, options).toArray()
             res.send(result)
         })
@@ -156,6 +157,59 @@ async function run() {
                 projection: { _id: 1, classImage: 1, classNames: 1, date: 1, classItemID: 1 },
             };
             const result = await paymentCollection.find(query, options).toArray()
+            res.send(result)
+        })
+
+        // admin routes
+
+        // get all users
+        app.get('/manage-users', async (req, res) => {
+            const result = await usersCollection.find().toArray()
+            res.send(result)
+        })
+
+        // check admin
+        app.get('/check-admin', async (req, res) => {
+            const email = req.query.email
+            const query = { email: email }
+            const user = await usersCollection.findOne(query)
+            const result = { admin: user?.role === 'admin' }
+            res.send(result)
+        })
+
+        // make admin
+        app.patch('/update-users-admin', verifyJWT, async (req, res) => {
+            const email = req.query.email
+            const filter = { email: email };
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: {
+                    role: 'admin'
+                },
+            };
+            const result = await usersCollection.updateOne(filter, updateDoc, options)
+            res.send(result)
+        })
+        // make instructor
+        app.patch('/update-users-instructor', verifyJWT, async (req, res) => {
+            const email = req.query.email
+            const filter = { email: email };
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: {
+                    role: 'instructor'
+                },
+            };
+            const result = await usersCollection.updateOne(filter, updateDoc, options)
+            res.send(result)
+        })
+
+        // check Instructor
+        app.get('/check-instructor', async (req, res) => {
+            const email = req.query.email
+            const query = { email: email }
+            const user = await usersCollection.findOne(query)
+            const result = { instructor: user?.role === 'instructor' }
             res.send(result)
         })
 
