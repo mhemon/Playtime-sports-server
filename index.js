@@ -77,6 +77,17 @@ async function run() {
             const result = await classesCollection.find(query).toArray()
             res.send(result)
         })
+    
+        // popular class based on enroll students
+        // this data has to be public because we provide it on home screen
+        app.get('/popular-classes', async (req, res) => {
+            const query = { status: "approved" };
+            const result = await classesCollection.find(query)
+              .sort({ enrolled: -1 }) // Sort by enrolled field in descending order
+              .limit(6) // Limit the results to 6 documents
+              .toArray();
+            res.send(result);
+          });          
 
         // get all class for admin
         app.get('/all-classes', verifyJWT, async (req, res) => {
