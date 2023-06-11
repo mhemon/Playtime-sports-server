@@ -51,6 +51,7 @@ async function run() {
         const classesCollection = client.db("playTimeSports").collection('classes');
         const cartCollection = client.db("playTimeSports").collection('carts');
         const paymentCollection = client.db("playTimeSports").collection('payments');
+        const funFactsCollection = client.db("playTimeSports").collection('funFactsData');
 
         //jwt code
         app.post('/jwt', (req, res) => {
@@ -77,17 +78,35 @@ async function run() {
             const result = await classesCollection.find(query).toArray()
             res.send(result)
         })
-    
-        // popular class based on enroll students
-        // this data has to be public because we provide it on home screen
+
+        // popular classes based on enroll student
+        // this routes has to be in public access
         app.get('/popular-classes', async (req, res) => {
             const query = { status: "approved" };
             const result = await classesCollection.find(query)
-              .sort({ enrolled: -1 }) // Sort by enrolled field in descending order
-              .limit(6) // Limit the results to 6 documents
-              .toArray();
+                .sort({ enrolled: -1 })
+                .limit(6)
+                .toArray();
             res.send(result);
-          });          
+        });
+
+        // this routes has to be in public access
+        app.get('/popular-instructor', async (req, res) => {
+            const query = { role: "instructor" };
+            const result = await usersCollection.find(query)
+                .limit(6)
+                .toArray();
+            res.send(result);
+        });
+
+        // fun facts
+        // public data
+        app.get('/facts', async (req, res) => {
+            const result = await funFactsCollection.find().toArray()
+            res.send(result)
+        })
+        
+        
 
         // get all class for admin
         app.get('/all-classes', verifyJWT, async (req, res) => {
@@ -128,7 +147,7 @@ async function run() {
             const _ids = req.body.map(id => new ObjectId(id));
             try {
                 const updatedClasses = await classesCollection.updateMany(
-                    { _id: { $in: _ids } }, 
+                    { _id: { $in: _ids } },
                     { $inc: { enrolled: 1, available_seats: -1 } }
                 );
                 res.send(updatedClasses);
