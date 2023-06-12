@@ -45,7 +45,8 @@ const client = new MongoClient(uri, {
 async function run() {
     try {
         // Connect the client to the server	(optional starting in v4.7)
-        await client.connect();
+        // remember to remove await for solve vercel deploy problem
+        client.connect();
 
         const usersCollection = client.db("playTimeSports").collection('users');
         const classesCollection = client.db("playTimeSports").collection('classes');
@@ -106,19 +107,14 @@ async function run() {
         // this routes has to be in public access
         app.get('/popular-classes', async (req, res) => {
             const query = { status: "approved" };
-            const result = await classesCollection.find(query)
-                .sort({ enrolled: -1 })
-                .limit(6)
-                .toArray();
+            const result = await classesCollection.find(query).sort({ enrolled: -1 }).limit(6).toArray();
             res.send(result);
         });
 
         // this routes has to be in public access
         app.get('/popular-instructor', async (req, res) => {
             const query = { role: "instructor" };
-            const result = await usersCollection.find(query)
-                .limit(6)
-                .toArray();
+            const result = await usersCollection.find(query).limit(6).toArray();
             res.send(result);
         });
 
